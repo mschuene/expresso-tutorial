@@ -1,10 +1,29 @@
-# expresso-tutorial
+# Expresso-tutorial
+Welcome to the official expresso tutorial.
 
-A Clojure library designed to ... well, that part is up to you.
+## What is expresso
+[Expresso](https://github.com/clojure-numerics/expresso) is the clojure library
+for algebraic manipulation of expressions and symbolic computation I developed
+as my Google summer of Code 2013 project.
+It builds on top of [core.matrix](https://github.com/clojure-numerics/core.matrix) and [core.logic](https://github.com/clojure/core.logic) and provides a
+powerful manipulation framework for algebraic expressions.
 
-## Usage
+## Features
+At the end of gsoc, expresso has the following features:
+- functions to construct and handle algebraic expressions
+- a general rule based translator to succinctly state expression manipulations
+- functions to manipulate and simplify algebraic expressions, like
+  multiply-out and simplify
+- an expression solver which can solve a single equation and set of equations
+  for unknowns. The expressions can also contain ndarray input like core.matrix
+- an expression optimizer and compiler, which optimizes the expression for
+  excecution speed and can compile it to a non-overhead clojure function
 
-FIXME
+## What this tutorial covers
+The tutorial is split into multiple section, each contained in its own top level
+org file. Each file is itself a literal program and contains working clojure
+code. The extracted code can also be found in the src directory.
+
 
 ## License
 
