@@ -1,0 +1,34 @@
+#+TITLE:Expresso basics 
+#+AUTHOR: Maik Schünemann
+#+email: maikschuenemann@gmail.com
+#+STARTUP:showall
+-----
+
+The code of this section is in the expresso-tutorial.expresso-basics namespace
+#+begin_src clojure :exports both :results output :tangle yes
+  (ns expresso-tutorial.expresso-basics
+  (:use [numeric.expresso.core]))
+#+end_src
+
+* Expressions
+  Central datastructure of expresso is an Expression.
+  Clojure, being a lisp, already has a proven and simple way to encode
+  expressions, namely s-expressions.
+  Expresso follows the lisp approach and encodes expressions as s-expressions.
+  That means, that every user-facing expression Type will implement ISeq, so 
+  you can use *all the clojure sequence functions* to manipulate expressions.
+  Currently, clojure's in-build lists with metadata added is the default 
+  expression Type.
+
+** Constructing Expressions
+   while all functions in numeric.expresso.core accept plain s-expressions as 
+   arguments, the ex-macros are very convenient for creating expressions.
+   They also have the benefit of converting the argument to expresso's internal
+   format on the fly, so that this work doesn't need to be done with every
+   function invocation in core.
+
+  #+begin_src clojure :exports both :results output :tangle yes
+  
+   #+end_src
+
+  

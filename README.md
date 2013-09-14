@@ -24,6 +24,21 @@ The tutorial is split into multiple section, each contained in its own top level
 org file. Each file is itself a literal program and contains working clojure
 code. The extracted code can also be found in the src directory.
 
+## Table of contents
+   1. Expresso basics
+   2. Manipulation of Algebraic Expressions
+      1. simplifying and solving expressions
+	  2. optimizing and compiling expressions
+   3. Rule based semantic Term Rewriting with expresso
+   4. Expresso's internals/how it works
+   5. Extending expresso
+
+## Getting started
+  1. Copy this repo, so you can experiment with the code while reading
+  2. Begin reading Expresso's basics
+  3. Pick any other section which is of interest
+
+
 
 ## License
 
