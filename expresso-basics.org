@@ -20,6 +20,15 @@ The code of this section is in the expresso-tutorial.expresso-basics namespace
   Currently, clojure's in-build lists with metadata added is the default 
   expression Type.
 
+  For mathematical expressions, expresso follows the nomenclature and the
+  semantics of core.matrix. That means, that + means the mathematical 
+  elementwise plus in the n-dimensional case.
+
+  If expresso doesn't know anything about the operator it is constructing, it 
+  will construct the expression with the fully namespace qualified symbol.
+  See the section about extending expresso about how to make a new operation 
+  known to expresso
+
 ** Constructing Expressions
    while all functions in numeric.expresso.core accept plain s-expressions as 
    arguments, the ex-macros are very convenient for creating expressions suitable
@@ -169,9 +178,11 @@ The code of this section is in the expresso-tutorial.expresso-basics namespace
     (in-ns 'expresso-tutorial.expresso-basics)
     (evaluate (ex (+ 1 x)) {'x 2}) ;=> 3
     (evaluate (ex (* x y)) {'x [1 2 3] 'y 4}) ;=> [4 8 12]
+    (evaluate (zero-matrix :shape [2 3]) {}) ;=> [[0.0 0.0 0.0] [0.0 0.0 0.0]]
     (substitute (ex (+ y 2)) {'y 4}) ;=> (+ 4 2)
     ;;you can also substitute whole parts of the expression
-    (substitute (ex (* (+ x y) 2)) {(ex (+ x y)) 4}) ;=> (* 4 2)    
+    (substitute (ex (* (+ x y) 2)) {(ex (+ x y)) 4}) ;=> (* 4 2)
+    
   #+end_src
   
   This is the basic interface expresso gives you to work with expressions.
