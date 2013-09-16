@@ -46,7 +46,20 @@ The code of this section is in the expresso-tutorial.expresso-basics namespace
   #+end_src
    For the simple case, there is no need to explicitly construct symbols before
    creating the expression.
-   
+*** Parsing expressions
+    In case you find constructing expressions in infix style easier than 
+    with prefix style, you can parse an expression from an infix string.
+    It works just like you would expect
+    #+begin_src clojure :exports both :results output :tangle yes
+      (in-ns 'exprpresso-tutorial.expresso-basics)
+        (parse-expression "1 + 2") ;=> (+ 1 2)
+        (parse-expression "x + y + z") ;=> (+ x y z)
+        (parse-expression "1+2*3**4+5") ;=> (+ 1 (* 2 (** 3 4)) 5)
+        (parse-expression "1+2*3**(4+5)") ;=> (+ 1 (* 2 (** 3 (+ 4 5))))
+        (parse-expression "sin(x)**2 + cos( x ) ** 2 = 1")
+        ;;=> (= (+ (** (sin x) 2) (** (cos x) 2)) 1)
+        (parse-expression "[1 2 3] + [4 5 6]")
+    #+end_src
 ** Annotating Symbols
    Expresso also lets you specify properties about the symbols in the expression.
    By default, expresso assumes the simple case: It assumes the symbol represents
@@ -80,4 +93,85 @@ The code of this section is in the expresso-tutorial.expresso-basics namespace
     provides the functions expresso-symbol, matrix-symbol and the functions
     zero-matrix and identity-matrix, each of which is examplified below
 
+    #+begin_src clojure :exports both :results output :tangle yes
+      ;;the functions take keyword arguments instead of the meta keys
+      ;;all keyword arguments are optional
+      (in-ns 'expresso-tutorial.expresso-basics)
+      (expresso-symbol 'a)
+      (expresso-symbol 'b :shape [2 2] :properties #{:mzero})
+      (matrix-symbol 'c :shape [2 2])
+      ;;if no :symb key is supplied for identity-matrix or zero-matrix, they gensym a
+      ;;new symbol starting with zeromat or identitymat.
+      (identity-matrix :symb 'd :shape [2 2])
+      (identity-matrix)
+      (zero-matrix :symb 'e)
+      (zero-matrix)
+    #+end_src
+
+    To construct expressions containing the symbols ex' comes in handy
+    #+begin_src clojure :exports both :results output :tangle yes
+      (in-ns 'expresso-tutorial.expresso-basics)
+      (def x (expresso-symbol 'x :shape [2 2]))
+      
+      (ex' [y] (+ (** x 2) (* y x))) ;=> (+ (** x 2) (* y x))
+    #+end_src
     
+** querying expressions
+   You already saw the functions shape and properties for inspecting the 
+   annotated symbols. There is also the function vars, which gets the set
+   of variables the expression depends on.
+
+   #+begin_src clojure :exports both :results output :tangle yes
+     (in-ns 'expresso-tutorial.expresso-basics)
+     
+     (shape (ex (+ 1 2))) ;=> (+ 1 2)
+     ;;unannotated symbols mean numbers
+     (shape (ex (+ x y))) ;=> []
+     
+     (shape (ex (+ ^{:shape [2 2]} x y))) ;=> [2 2]
+     
+     (vars (ex (+ 1 2))) ;=> #{}
+     (vars (ex (+ x (* y 4)))) ;=> #{y x}
+     
+     ;;vars only gives back the real undetermined symbols, in the expression, so
+     ;;if there is a symbol representing an identitymatrix with known shape, it is
+     ;;not included
+     
+     (vars (ex (+ x ~(identity-matrix)))) ;=> #{x identitymat2759}
+     (vars (ex (+ x ~(identity-matrix :shape [2 2])))) ;=> #{x}
+     
+   #+end_src
+** Expression Predicates
+   You can check whether you got an expression or a constant with the 
+   expression? and constant? predicate functions. Note that expresso's 
+   expressions aren't limited to mathematical expressions. You can construct
+   expressions with any kind of constants and manipulate them. Therefore,
+   constant? doesn't incur boundaries on the types of the constant.
+  expression? and constant? are defined to be the negatives of each other
+   #+begin_src clojure :exports both :results output :tangle yes
+     (in-ns 'expresso-tutorial.expresso-basics')
+     (expression? (ex (+ 1 2))) ;=> true
+     (constant? (ex (+ 1 2))) ;=> false
+     (expression? 5) ;=> false
+     (constant? 5) ;=> true
+     (expression? 'x) ;=> false
+     (constant? 'x) ;=> true
+   #+end_src
+* Basic Expression Manipulations
+  Two basic manipulations for expressions are to evaluate them and to substitute
+  terms in the expression for other.
+  Evaluate takes the expression and a map of symbols to values and returns the
+  numerical result of the evaluation.
+  Substitute also takes the expression and a map and 
+  replaces the parts of the of the expression specified in the map with the
+  corresponding values
+  #+begin_src clojure :exports both :results output :tangle yes
+    (in-ns 'expresso-tutorial.expresso-basics)
+    (evaluate (ex (+ 1 x)) {'x 2}) ;=> 3
+    (evaluate (ex (* x y)) {'x [1 2 3] 'y 4}) ;=> [4 8 12]
+    (substitute (ex (+ y 2)) {'y 4}) ;=> (+ 4 2)
+    ;;you can also substitute whole parts of the expression
+    (substitute (ex (* (+ x y) 2)) {(ex (+ x y)) 4}) ;=> (* 4 2)    
+  #+end_src
+  
+  This is the basic interface expresso gives you to work with expressions.
