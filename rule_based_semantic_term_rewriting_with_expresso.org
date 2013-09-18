@@ -1,0 +1,181 @@
+#+TITLE:Rule Based Semantic Term Rewriting With Expresso 
+#+AUTHOR: Maik Schünemann
+#+email: maikschuenemann@gmail.com
+#+STARTUP:showall
+-----
+
+#+begin_src clojure :exports both :results output :tangle yes
+  (ns expresso-tutorial.term-rewriting
+    (:use [numeric.expresso.core]
+          [numeric.expresso.rules :only [rule apply-rule guard 
+                                         transform-expression
+                                         apply-rules]]))
+#+end_src
+
+Expresso has at its core a rule based translator, on which much of its
+functionality is based.
+
+This section gives an in depth rewiev of the rule based translator and the 
+syntax of rules used in expresso.
+
+The power of expressos rule based translator comes from it's semantic matching
+facility, which matches if expressions are identical in the mathematical sense
+and not only if they are syntactically equal.
+
+* Defining Rules
+  A rule can be constructed with the rule macro. The rule macro accepts a 
+  pattern expression, a transformation expression or relation and an optional
+  guard relation. The following example demonstrates some basic rules.
+
+  The guard and transition parts can be arbitrary core.logic relations, so it 
+  is possible to use the power of logic programming inside of expresso rules.
+  For this section, however we will not use core.logic, so we will use the 
+  :==> and (guard ...) keys to convert inline functions to the right core.logic 
+  relations
+
+  #+begin_src clojure :exports both :results output :tangle yes
+    (in-ns 'expresso-tutorial.term-rewriting)
+    
+    ;;inside a rule, all symbols starting with ? represent free variables which are
+    ;;then matched with the expression the rule is applied to
+    (def remove-zero (rule (ex (+ 0 ?x)) :=> ?x))
+    ;;a function as transition can be used after the :==> and the :if marks a
+    ;;guard relation
+    (def increment (rule ?x :==> (inc ?x) :if (guard (number? ?x))))
+  #+end_src
+  
+  To apply a rule to an expression, use the apply-rule function
+
+  #+begin_src clojure :exports both :results output :tangle yes
+    (in-ns 'expresso-tutorial.term-rewriting)
+    
+    (apply-rule remove-zero (ex (+ 0 2))) ;=> 2
+    
+    (apply-rule increment 5) ;=> 6
+    
+    ;;if a rule application fails, it returns nil
+    (apply-rule increment 'x) ;=> nil
+    ;;here the guard relation in the increment rule prevented the rule application
+    
+    ;;Why is this not failing?
+    (apply-rule remove-zero (ex (+ 2 0))) ;=> 2
+  #+end_src
+
+** Semantic matching
+   Like you saw in the last example, the remove-zero rule was succesfully 
+   applied to the input (ex (+ 2 0)). So the expression (ex (+ 2 0)) 
+   was succesfully matched against the patter (ex (+ 0 ?x)) of the input.
+
+   The matching was succesful, because expresso does semantic matching, not 
+   only syntactical. Expresso knows that the + operation is commutative, so 
+   the input matches regardless of the order of the arguments to +.
+
+** Sequence matchers
+   The remove-zero rule still has a weakness like the next example shows
+   #+begin_src clojure :exports both :results output :tangle yes
+     (in-ns 'expresso-tutorial.term-rewriting)
+     
+     (apply-rule remove-zero (ex (+ 1 0 3))) ;=> nil
+     
+   #+end_src
+
+   This fails, because the expression has three arguments while the pattern 
+   only has two arguments. Expresso uses sequence matchers who match zero or 
+   more arguments of the expression. a seq-matcher is created from a symbol 
+   starting with ?&. ?&* is a seq-matcher which matches zero or more and 
+   ?&+ matches one or more.
+
+   #+begin_src clojure :exports both :results output :tangle yes
+     (in-ns 'expresso-tutorial.term-rewriting)
+     
+     (def remove-zero (rule (ex (+ 0 ?&*)) :=> (ex (+ ?&*))))
+     
+     ;;now the remove-zero rule can handle also long inputs
+     
+     (apply-rule remove-zero (ex (+ 1 0 3))) ;=> (+ 1 3)
+     
+     ;;however on two and one argument inputs it produces the following
+     
+     (apply-rule remove-zero (ex (+ 1 0))) ;=> (+ 1)
+     
+     (apply-rule remove-zero (ex (+ 0))) ;=> (+)
+     
+     ;;so two normalization rules are useful for + with zero or one argument
+     
+     (def remove-unary-plus (rule (ex (+ ?x)) :=> ?x))
+     (def remove-nullary-plus (rule (ex (+)) :=> 0))
+   #+end_src
+   
+   inside commutative operators only one sequential matcher makes sense, because
+   it consumes all the remaining inputs regardless of their positions in the
+   original expression.
+
+   If the operation is not commutative, then multiple sequential matchers are
+   supported and the order of the arguments is preserved in them. The next
+   example demonstrates that.
+
+#+begin_src clojure :exports both :results output :tangle yes
+  (in-ns 'expresso-tutorial.term-rewriting)
+  
+  ;;For this example, let ° demonstrate the n-ary cons operation which creates
+  ;;a list from their arguments. We want to use the rule based translator to sort
+  ;;the list. This can be performed with the following rule:
+  
+  (def sort-step
+    (rule (ex (° ?&*1 ?x ?&*2 ?y ?&*3)) :=> (ex (° ?&*1 ?y ?&*2 ?x ?&*3))
+          :if (guard (> ?y ?x))))
+  
+  (apply-rule sort-step (ex (° 1 2 3))) ;=> (° 2 1 3)
+  
+  
+  ;;succesful application of the sort step fully sorts the given list.
+  ;;For the reader: What sorting mechanism does this reflect?
+  (take 5 (iterate (partial apply-rule sort-step) (ex (° 1 2 3))))
+  ;;=> ((° 1 2 3) (° 2 1 3) (° 2 3 1) (° 3 2 1) nil)
+  
+   #+end_src
+** Transforming an Expression to its Normal Form according to a set of rules
+
+   As you saw in the last example, the sorted list can be seen as a normal 
+   form according to the sort-rule, because it can't be applied any more 
+   to the sort rule.
+   The same applies, pun intendet, to the plus term with no zeros in it and
+   the removed nullary and unary plus operations. They can be said to be 
+   in a normal form according to the set of rules containing
+   remove-zero, remove-unary-plus and remove-nullary-plus.
+
+   The function transform-expression fully transforms an expression according
+   to the rule vector, until no rule can be applied anymore and the expression
+   is in normal form.
+  #+begin_src clojure :exports both :results output :tangle yes
+    (in-ns 'expresso-tutorial.term-rewriting)
+    
+    (map (partial transform-expression
+                  [remove-zero remove-unary-plus remove-nullary-plus])
+         [(ex (+ 0 1)) (ex (+ 0)) (ex (+ 1 0 2 3)) (ex (+ 0 1 0 2 0 3 0 4))])
+     ;=> (1 0 (+ 1 2 3) (+ 1 2 3 4))
+    
+    (transform-expression [sort-step] (ex (° 9 2 3 4 2 3 9 2 3 4 1 8 2 9 4 2 1 10)))
+    ;;=> (° 10 9 9 9 8 4 4 4 3 3 3 2 2 2 2 2 1 1)
+    
+    
+   #+end_src
+
+** Extractors in Rules
+   Expresso's rules have another nice feature, called extractors. They have
+   their own matching semantics. See the following snippet:
+
+   #+begin_src clojure :exports both :results output :tangle yes
+     (in-ns 'expresso-tutorial.term-rewriting)
+     
+     ;;expresso encodes the core.matrix + in its + operator. This means, not only
+     ;;0 is an identity to + but also any identity matrix. The extractor
+     ;;(mzero? ?x) matches the part of the expression if it is a 0, a 0.0 or a zero
+     ;;matrix in the sense of core.matrix. The same applies to 1 and midentity?
+     (def remove-zero (rule (ex (+ (mzero? ?x) ?&*)) :=> (ex (+ ?&*))))
+     
+     (apply-rule remove-zero (ex (+ 1 0 3))) ;=> (+ 1 3)
+     (apply-rule remove-zero (ex (+ [[1 2][3 4]] [[0 0][0 0]] [[5 6][7 8]])))
+     ;;=> (+ [[1 2] [3 4]] [[5 6] [7 8]])
+     
+   #+end_src
