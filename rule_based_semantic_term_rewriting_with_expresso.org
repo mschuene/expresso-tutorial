@@ -61,7 +61,7 @@ and not only if they are syntactically equal.
     (apply-rule remove-zero (ex (+ 2 0))) ;=> 2
   #+end_src
 
-** Semantic matching
+* Semantic matching
    Like you saw in the last example, the remove-zero rule was succesfully 
    applied to the input (ex (+ 2 0)). So the expression (ex (+ 2 0)) 
    was succesfully matched against the patter (ex (+ 0 ?x)) of the input.
@@ -70,7 +70,7 @@ and not only if they are syntactically equal.
    only syntactical. Expresso knows that the + operation is commutative, so 
    the input matches regardless of the order of the arguments to +.
 
-** Sequence matchers
+* Sequence matchers
    The remove-zero rule still has a weakness like the next example shows
    #+begin_src clojure :exports both :results output :tangle yes
      (in-ns 'expresso-tutorial.term-rewriting)
@@ -134,7 +134,7 @@ and not only if they are syntactically equal.
   ;;=> ((° 1 2 3) (° 2 1 3) (° 2 3 1) (° 3 2 1) nil)
   
    #+end_src
-** Transforming an Expression to its Normal Form according to a set of rules
+* Transforming an Expression to its Normal Form according to a set of rules
 
    As you saw in the last example, the sorted list can be seen as a normal 
    form according to the sort-rule, because it can't be applied any more 
@@ -161,7 +161,7 @@ and not only if they are syntactically equal.
     
    #+end_src
 
-** Extractors in Rules
+* Extractors in Rules
    Expresso's rules have another nice feature, called extractors. They have
    their own matching semantics. See the following snippet:
 
@@ -179,3 +179,9 @@ and not only if they are syntactically equal.
      ;;=> (+ [[1 2] [3 4]] [[5 6] [7 8]])
      
    #+end_src
+   
+* Many examples of rules in the source code
+
+  To see good examples of the expresso rules, I recommend to actually read the
+  code of numeric.expresso.simplify. It contains most of the rules expresso 
+  uses and is well documented.

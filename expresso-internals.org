@@ -1,0 +1,130 @@
+#+TITLE:The Internals of Expresso 
+#+AUTHOR: Maik Schünemann
+#+email: maikschuenemann@gmail.com
+#+STARTUP:showall
+-----
+This section of the tutorial documents the internal workings of expresso.
+Expresso makes great use of clojure's abstraction mechanism like protocols
+and multimethods and uses a datadriven approach where possible. This makes
+it very flexible and open to be extendet.
+Expresso's aim is to base its algorithms on domain knowledge, for example in 
+the form of rules.
+I will go through the big parts of expresso and explain the internals of each:
+* Expresso Protocols
+  Expresso is based on abstractions provided by protocols. The protocols 
+  are all extensively documented in the protocols.clj file in the expresso 
+  code.
+* Constructing Expressions
+  The fundamental function for expresso construction is the 
+  numeric.expresso.construct/ce function which creates an expression with 
+  the specified symbol and arguments. 
+  There are several multimethod based steps on constructing expressions
+** Choosing the expresso-symbol
+   The symbols that get passed to ce can be namespace qualified. If expresso
+   knows about the function it uses a short name, so clojure.core.matrix/add
+   is mapped to the symbol +. If no short name is specified in the 
+   expresso-name multimethod the default implementation returns the symbol 
+   unchanged. The expresso name of the symbol is then used during the rest
+   of the constructing phase.
+** Constructing the symbols used in the argument list
+   This enables properties of symbols to be defined in simple to remember keys
+   in the metadata. This slots does not have to represent the final structure
+   of the metadata, which is an implementation detail. The behaviour of this 
+   phase is documented in the expresso-basics section about annotating symbols
+** Constructing Dispatch
+   After the first two steps, the following constructing dispatch methods are
+   called. The first that succeeds returns the final constructed expression.
+*** create-special-expression
+    This is the first dispatch method. It dispatches also on the symbol of 
+    the expression to be constructed. If some symbols require special construction
+    this is the dispatch function to use. For example the elementwise core.matrix
+    function are registered at this dispatch method to do their shape inference
+*** create-extractor
+    This is used for the symbols which specify extractors like mzero?, ...
+    The dispatch method dispatches on the symbols and returns a matching 
+    relation which specifies the matching behaviour of the extractor.
+    With this relation an instance of 
+    numeric.expresso.impl.pimplementaiton.BasicExtractor is created which 
+    has its own implementation of the PMatch protocol which is used during
+    the rule application.
+*** create-normal-expression
+    If the other two dispatch functions returned nil, this catch-all constructing
+    mechanism is applied. It does nothing but create a list of (symbol args*)
+    with the right metadata representing its properties added to the symbol
+**** adding the informations about the symbol
+     This adds the properties known to a symbol. It is done by the 
+     numeric.expresso.properties/props multifunction. The properties added
+     include :properties like :commutative or :associative and the
+     :exec-func like clojure.core.matrix/add. protocol implementation for 
+     example can use the data added here, like the PExecute protocol which uses 
+     the :exec-func key in the symbol metadata.
+     Also for all :commutative functions the commutative :matcher-rel is choosen
+     which determines the behaviour during matching.
+
+* The Rule Based Translator
+  The rule based translator is the core of expresso. It self is build on top of 
+  core.logic.
+** The rule Macro
+   Like documented in the section about term-rewriting of this tutorial, the
+   rule macro constructs a rule from a pattern, a transition and an optional
+   guard.
+   The rule macro creates a 3-element vector of [pattern transition guard]
+   If no guard is specified, the core.logic succeed goal is used. the transition
+   part can also be a core.logic relation.
+*** replacing ?-symbols with fresh lvars
+    the ?-symbols in the expressions inside the rule are converted by the rule
+    macro to core.logic lvars with the name of the symbol. This lvars are then
+    unified during rule application.
+** Applying a rule
+   The rule application proceeds in three stages and occurs in a run 1
+   core.logic context.
+*** Matching the input
+    In this phase the input is matched with core.logic with the semantics specified
+    by the PMatch protocol. For extractors this is the extractor-rel function and
+    for normal expressions it is the :matching-rel key in the symbol metadata
+    This matching strategy is applied.
+*** checking the guard
+    The next step in the core.logic relation of applying a rules is checking
+    if the guard succeeds with the bindings for the lvars established during 
+    matching
+*** applying the transformation
+    The last step is applying the transformation. In the case it is just an
+    expression, the result of the rule application is unified with this expression
+    If it is a core.logic relation, then the relation is called insteadl
+*** post-processing
+    Some post-processing is done for example the extracting of the seq-matchers
+    is done here.
+** Transforming an expression according to rules
+   Expresso provides several functions for rule application. You can look into 
+   numeric.expresso.rules for the documentation of these functions. It is planned
+   that expresso gets proper rule application strategy as function compositions
+   in the future. For now the normal transformation function is transform-expression
+   which does a fully recursive bottom-up application of rules until the normal
+   form - in which no rule applies anymore - is reached.
+   To speed up performance on this method, tagging is used to mark expressions
+   that are in normal form according to a set of rules.
+* Simplifying
+  At its current stand, simplifying is just a 2-step 
+  translation according to the rules in simplify.clj. This is a very good example
+  of the power of rule based translation with semantic matching.
+* Solving Equations
+  The expresso solver is split into two function, solve-system and solve where
+  solve is the solver for one equation.
+** Solving a single equation.
+   The equation solver is itself based on solve-rules which are top level rules
+   which get a [variable equation] vector and have a function/relation 
+   which implements a solving strategy. This also makes the solving system 
+   extensible.
+** Solving multiple equations.
+   Expresso has two solvers for multiple equations. A solver for linear systems
+   which can solve systems of expressions if it can construct a numeric matrix
+   out of it and then solves it with the fraction free gaussian elimination 
+   algorithms which is also part of expresso. If this doesn't apply the 
+   general multiple equation solving function is invoked, which repeatedly 
+   uses solve and substitution to solve the system of equations.
+* Optimizing Expressions
+  The optimizer is based on a vector which contains optimization runs, functions
+  which take the expression and return an optimized form of the expression.
+  Each of the functions in the vector is applied and the resulting expression
+  returned. 
+
