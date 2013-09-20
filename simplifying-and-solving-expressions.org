@@ -45,7 +45,8 @@
     (in-ns 'expresso-tutorial.simp-solve)
     
     (multiply-out (ex (* (+ a b) c))) ;=> (+ (* a c) (* b c))
-    (multiply-out (ex (** (+ a b c) 3))) ;=> (+ (** c 3) (* 3 b (** c 2))  (* 3 (** b 2) c) (** b 3) (* 3 a (** c 2)) (* 6 a b c) (* 3 a (** b 2)) (* 3 (** a 2) c) (* 3 (** a 2) b) (** a 3))
+    (multiply-out (ex (** (+ a b c) 2)))
+     ;=> (+ (** c 2) (* 2 b c) (** b 2) (* 2 a c) (* 2 a b) (** a 2))
   #+end_src
 
 * Simplifying Expressions
@@ -218,6 +219,9 @@
      
    #+end_src
    
+   Let's now use expresso's facilities to solve actual problems. I hope that 
+   the examples demonstrate how /simple/ it is to do symbolic manipulations
+   with expresso.
    
 * Example 1: Solving word problems
   We will use expresso here to solve five word problems from [[http://www.mathplayground.com/SMP_WordProblems.html][this site]]:
@@ -292,13 +296,13 @@
     (in-ns 'expresso-tutorial.simp-solve)
     
     (solve 'time
-           (ex (= starts 10))
-           (ex (= speeds 60))
-           (ex (= startt (+ starts 1)))
-           (ex (= speedt 50))
-           (ex (= distances (* (- time starts) speeds)))
-           (ex (= distancet (* (- time startt) speedt)))
-           (ex (= (+ distances distancet) 225))) ;=> #{{time 25/2}}
+           (ex (= start-sara 10))
+           (ex (= speed-sara 60))
+           (ex (= start-todd (+ start-sara 1)))
+           (ex (= speed-todd 50))
+           (ex (= distance-sara (* (- time start-sara) speed-sara)))
+           (ex (= distance-todd (* (- time start-todd) speed-todd)))
+           (ex (= (+ distance-sara distance-todd) 225))) ;=> #{{time 25/2}}
    #+end_src  
     
   Question 5A:
@@ -313,11 +317,11 @@
 
   #+begin_src clojure :exports both :results output :tangle yes
     (in-ns 'expresso-tutorial.simp-solve)
-    (solve '[remaining2]
+    (solve '[remaining2 original]
            (ex (= original b))
            (ex (= remaining1 (- original (/ original 4))))
            (ex (= remaining2 (- remaining1 (+ (/ remaining1 5) 15)))))
-     ;=> #{{remaining2 (+ -15N (* 3/5 _0))}}
+    ;=> #{{remaining2 (+ -15N (* 3/5 _0)), original _0}}
   #+end_src
 
 * Example 2: Function analysis
@@ -364,3 +368,55 @@
     
   #+end_src
   
+  Let's see how the analyse-function works. The root function just solves 
+  for the values of the variable for which the expression is zero. The 
+  function extremata uses the root function and the function differentiate
+  to get the local maxima and minima of the function. We will step through 
+  the function with the example (ex (- (** x 4) (** x 2))).
+  The first thing to do is to create the first and the second derivative
+  of the function. Because local extrema represent the points of the graph 
+  where it changes from sinking to rising or the other way round, the graph 
+  must have a slope of zero in this point. Hence the  candidates for extrema
+  are the points where the first derivative of the expression is zero - the 
+  roots of the first derivative.
+  #+begin_src clojure :exports both :results output :tangle yes
+    (in-ns 'expresso-tutorial.simp-solve)
+    
+    (def expr (ex (- (** x 4) (** x 2))))
+    
+    (differentiate '[x] expr) ;=> (+ (* 4 (** x 3)) (- (* 2 x)))
+    (differentiate '[x x] expr) ;=> (+ (* 12 (** x 2)) -2.0)
+    
+    (roots 'x (ex (+ (* 4 (** x 3)) (- (* 2 x)))))
+    ;;=> #{0 0.7071067811865476 -0.7071067811865476}
+  #+end_src
+
+  These are only candidates because there can be points where the derivative
+  is zero, but the graph doesn't change direction. The easiest example of that
+  is the graph of x**3. We must therefore test if the graph really changes
+  direction in the candidates. That means that the sign of the slope has to 
+  change in this point. And this means that the slope of the slope can't be 
+  zero. In mathematical terms, the test is that the second derivative of the 
+  expression is not zero at the candidate point.
+  We can test that the second derivative is not zero with the function 
+  evaluate and pass it the map from 'x to the result
+  #+begin_src clojure :exports both :results output :tangle yes
+    (in-ns 'expresso-tutorial.simp-solve)
+    
+    (def candidates (roots 'x (ex (+ (* 4 (** x 3)) (- (* 2 x))))))
+    candidates ;=> #{0 0.7071067811865476 -0.7071067811865476}
+    
+    (map #(evaluate (ex (+ (* 12 (** x 2)) -2.0)) {'x %}) candidates)
+    ;;=> (-2.0 4.000000000000002 4.000000000000002)
+    
+  #+end_src
+  Wee see that all our candidates are actually extremata.
+  Now the last job is to differentiate - pun intendet - between maxima and 
+  minima. This can be done with the following reasoning:
+  If we have a maximum, the graph of the expression changes from rising to 
+  falling. This means, that the slope starts above zero, gradually gets lower, 
+  reaches zero at the maximum and then goes below zero when the graph begins
+  sinking. That means that the slope is constantly sinking, what means that 
+  the slope of the slope - the second derivative - is below zero.
+  So the candidates for which the second derivative is negative are the 
+  maxima and the candidates for which it is positive are the minima.

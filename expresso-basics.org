@@ -10,28 +10,24 @@ The code of this section is in the expresso-tutorial.expresso-basics namespace
     (:use [numeric.expresso.core]))
 #+end_src
 
+* Getting Started
+  Expresso is a library for symbolic manipulation of expressions. It could be seen
+  as the symbolic manipulation part of a clojure computer algebra system with 
+  core.matrix as its execution engine. Therefore it adopts the core.matrix 
+  symbols and its sane semantics for its own expressions. Practically, that means
+  you can add two matrices with the + operator.
+
 * Expressions
   Central datastructure of expresso is an Expression.
   Clojure, being a lisp, already has a proven and simple way to encode
   expressions, namely s-expressions.
   Expresso follows the lisp approach and encodes expressions as s-expressions.
-  That means, that every user-facing expression Type will implement ISeq, so 
-  you can use *all the clojure sequence functions* to manipulate expressions.
-  Currently, clojure's in-build lists with metadata added is the default 
-  expression Type.
-
-  For mathematical expressions, expresso follows the nomenclature and the
-  semantics of core.matrix. That means, that + means the mathematical 
-  elementwise plus in the n-dimensional case.
-
-  If expresso doesn't know anything about the operator it is constructing, it 
-  will construct the expression with the fully namespace qualified symbol.
-  See the section about extending expresso about how to make a new operation 
-  known to expresso
+  Therefore, expressions can be manipulated using the standart clojure sequence
+  functions.
 
 ** Constructing Expressions
    while all functions in numeric.expresso.core accept plain s-expressions as 
-   arguments, the ex-macros are very convenient for creating expressions suitable
+   arguments, the ex-macro is very convenient for creating expressions suitable
    for further manipulation by expresso.
 
   #+begin_src clojure :exports both :results output :tangle yes
@@ -43,18 +39,9 @@ The code of this section is in the expresso-tutorial.expresso-basics namespace
     
     ;;unquoting is also supported
     (ex (+ (* a x) ~(+ 3 (* 4 5)))) ;=> (+ (* a x) 23)
-    
-    ;;the ex' macro requires you to explicitly quote the symbols
-    (let [x 3]
-      (ex' (+ x 'x)))  ;=> (+ 3 x)
-    
-    ;;it also takes an optional symbol vector indicating symbols to quote
-    (let [x 3]
-      (ex' [x] (+ x ~x))) ;=> (+ x 3)
-    
+        
   #+end_src
-   For the simple case, there is no need to explicitly construct symbols before
-   creating the expression.
+   This is all to get you started using expresso!
 *** Parsing expressions
     In case you find constructing expressions in infix style easier than 
     with prefix style, you can parse an expression from an infix string.
@@ -69,103 +56,7 @@ The code of this section is in the expresso-tutorial.expresso-basics namespace
         ;;=> (= (+ (** (sin x) 2) (** (cos x) 2)) 1)
         (parse-expression "[1 2 3] + [4 5 6]")
     #+end_src
-** Annotating Symbols
-   Expresso also lets you specify properties about the symbols in the expression.
-   By default, expresso assumes the simple case: It assumes the symbol represents
-   a number with no additional properties.
-   There a two ways to annotate the symbols in the expression.
-*** directly in the ex-macros
-    The expresso constructing functions/macros respect the :matrix, :shape and
-    :properties keys in the metadata, so you can directly specify them imline
-    #+begin_src clojure :exports both :results output :tangle yes
-    ;;x represents a matrix here
-    (def expr (ex (+ ^:matrix x 1)))
-    ;;thus, its shape is not determined
-    (shape (nth expr 1)) ;=> <lvar:shape_....>
-    ;;you can also directly specify a shape
-    ;;the matrix annotation is not neccesary here
-    (def expr (ex (+ ^{:shape [2 2]} x 1)))
-    (shape (nth expr 1)) ;=> [2 2]
 
-    ;;to specify extra properties, use the properties metadata to specify a 
-    ;;set of properties.
-    (def expr (ex (+ ^{:shape [2 2] :properties #{:mzero}} x 1)))
-    (properties (nth expr 1)) ;=> #{:mzero}
-
-    ;;currently, :mzero and :midentity are used for zero and identity-matrices.
-    ;;In future, expresso will respect more properties.
-    #+end_src
-
-*** explicitly constructing symbols
-    The second way to annotate symbols is especially useful when one symbol is 
-    used in more than one place or in more expressions. For this cases, expresso
-    provides the functions expresso-symbol, matrix-symbol and the functions
-    zero-matrix and identity-matrix, each of which is examplified below
-
-    #+begin_src clojure :exports both :results output :tangle yes
-      ;;the functions take keyword arguments instead of the meta keys
-      ;;all keyword arguments are optional
-      (in-ns 'expresso-tutorial.expresso-basics)
-      (expresso-symbol 'a)
-      (expresso-symbol 'b :shape [2 2] :properties #{:mzero})
-      (matrix-symbol 'c :shape [2 2])
-      ;;if no :symb key is supplied for identity-matrix or zero-matrix, they gensym a
-      ;;new symbol starting with zeromat or identitymat.
-      (identity-matrix :symb 'd :shape [2 2])
-      (identity-matrix)
-      (zero-matrix :symb 'e)
-      (zero-matrix)
-    #+end_src
-
-    To construct expressions containing the symbols ex' comes in handy
-    #+begin_src clojure :exports both :results output :tangle yes
-      (in-ns 'expresso-tutorial.expresso-basics)
-      (def x (expresso-symbol 'x :shape [2 2]))
-      
-      (ex' [y] (+ (** x 2) (* y x))) ;=> (+ (** x 2) (* y x))
-    #+end_src
-    
-** querying expressions
-   You already saw the functions shape and properties for inspecting the 
-   annotated symbols. There is also the function vars, which gets the set
-   of variables the expression depends on.
-
-   #+begin_src clojure :exports both :results output :tangle yes
-     (in-ns 'expresso-tutorial.expresso-basics)
-     
-     (shape (ex (+ 1 2))) ;=> (+ 1 2)
-     ;;unannotated symbols mean numbers
-     (shape (ex (+ x y))) ;=> []
-     
-     (shape (ex (+ ^{:shape [2 2]} x y))) ;=> [2 2]
-     
-     (vars (ex (+ 1 2))) ;=> #{}
-     (vars (ex (+ x (* y 4)))) ;=> #{y x}
-     
-     ;;vars only gives back the real undetermined symbols, in the expression, so
-     ;;if there is a symbol representing an identitymatrix with known shape, it is
-     ;;not included
-     
-     (vars (ex (+ x ~(identity-matrix)))) ;=> #{x identitymat2759}
-     (vars (ex (+ x ~(identity-matrix :shape [2 2])))) ;=> #{x}
-     
-   #+end_src
-** Expression Predicates
-   You can check whether you got an expression or a constant with the 
-   expression? and constant? predicate functions. Note that expresso's 
-   expressions aren't limited to mathematical expressions. You can construct
-   expressions with any kind of constants and manipulate them. Therefore,
-   constant? doesn't incur boundaries on the types of the constant.
-  expression? and constant? are defined to be the negatives of each other
-   #+begin_src clojure :exports both :results output :tangle yes
-     (in-ns 'expresso-tutorial.expresso-basics')
-     (expression? (ex (+ 1 2))) ;=> true
-     (constant? (ex (+ 1 2))) ;=> false
-     (expression? 5) ;=> false
-     (constant? 5) ;=> true
-     (expression? 'x) ;=> false
-     (constant? 'x) ;=> true
-   #+end_src
 * Basic Expression Manipulations
   Two basic manipulations for expressions are to evaluate them and to substitute
   terms in the expression for other.
@@ -186,3 +77,7 @@ The code of this section is in the expresso-tutorial.expresso-basics namespace
   #+end_src
   
   This is the basic interface expresso gives you to work with expressions.
+  This should be enough to get you started to go through the next section 
+  of this tutorial. For more details about how to construct, annotate and 
+  query expressions and symbols see the advanced expression construction 
+  section.

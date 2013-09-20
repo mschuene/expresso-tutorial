@@ -23,15 +23,17 @@ At the end of gsoc, expresso has the following features:
 The tutorial is split into multiple section, each contained in its own top level
 org file. Each file is itself a literal program and contains working clojure
 code. The extracted code can also be found in the src directory.
+I highly recommend looking at the example section in 3.1
 
 ## Table of contents
    1. Expresso basics
-   2. Manipulation of Algebraic Expressions
+   2. (optional) Advanced expression construction and manipulation
+   3. Manipulation of Algebraic Expressions
       1. simplifying and solving expressions
 	  2. optimizing and compiling expressions
-   3. Rule based semantic Term Rewriting with expresso
-   4. Expresso's internals/how it works
-   5. Extending expresso
+   4. Rule based semantic Term Rewriting with expresso
+   5. Expresso's internals/how it works
+   6. Extending expresso
 
 ## Getting started
   1. Copy this repo, so you can experiment with the code while reading
