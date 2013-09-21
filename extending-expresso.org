@@ -8,6 +8,7 @@ abstraction and uses a data-driven approach in many situations. This makes
 it to a very flexible system which is easily customizable.
 This section will demonstrate how expresso can be extended.
 * Scenario 1: introducing a new operator
+  Sure, no problem!
   For this scenario, the functions in the construct and properties namespace are
   important.
   After you have introduced the new operator like described below, many 
@@ -18,12 +19,12 @@ This section will demonstrate how expresso can be extended.
   add your rule. Other manipulations, like rearrange and differentiate are for
   the normal expression type driven by a multimethod. You just have to add 
   a method for your new operator for them.
-** Case one: You just want to construct an expression with the symbol
+** Case one: Just construct an expression with the symbol
    There is nothing to do! This is expresso's default behaviour if it doesn't have
-   special knowledge of the symbol
-** Case two: You want to make properties of the symbol known to expresso
+   special knowledge of the symbo.l
+** Case two: Make properties of the symbol known to expresso
    Sure, no problem! Just add a method to the properties multimethod in
-   numeric.expresso.properties
+   numeric.expresso.properties.
 ** Case three: Add an extractor
    Sure, no problem! All you have to do is to add a method to the extractor-rel
    multimethod in properties.clj.
@@ -33,18 +34,19 @@ This section will demonstrate how expresso can be extended.
    The result of this method is then also the result of the whole construction
    phase.
 
-* Scenario 2: Adding a new optimization to the optimizer
+* Scenario 2: Adding a new Optimization to the Optimizer
   Sure, no problem! The optimize function in numeric.expresso.optimize 
   has an optional 2-ary overload which accepts a custom set of optimization 
   runs to apply. You can add your own optimization to this set in a specified
-  location or can discard some of the default optimizations
+  location or can discard some of the default optimizations.
 
-* Scenario 3: Extend the solver to solve more equations
+* Scenario 3: Extend the Solver to Solve More Equations
   Sure, no problem! (if you already have the solving method ;))
   Just as the optimizer, the solve method also accepts an optimizal rule vector.
   The solving mechanism tries to apply each rule and the first, which applies
-  succesfully determines the result
-* Scenario 4: You want to use a custom type to represent Expressions
+  succesfully determines the result.
+
+* Scenario 4: Use a Custom Type to Represent Expressions
   Sure, no problem! You just have to implement the protocols expresso is based
   on. You should also implement ISeq with this new type and the ISeq implmenentation
   should do the same that the corresponding clojure s-expression would do.

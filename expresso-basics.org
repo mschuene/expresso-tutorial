@@ -4,7 +4,6 @@
 #+STARTUP:showall
 -----
 
-The code of this section is in the expresso-tutorial.expresso-basics namespace
 #+begin_src clojure :exports both :results output :tangle yes
   (ns expresso-tutorial.expresso-basics
     (:use [numeric.expresso.core]))
@@ -14,8 +13,7 @@ The code of this section is in the expresso-tutorial.expresso-basics namespace
   Expresso is a library for symbolic manipulation of expressions. It could be seen
   as the symbolic manipulation part of a clojure computer algebra system with 
   core.matrix as its execution engine. Therefore it adopts the core.matrix 
-  symbols and its sane semantics for its own expressions. Practically, that means
-  you can add two matrices with the + operator.
+  symbols and its sane semantics for its own expressions.
 
 * Expressions
   Central datastructure of expresso is an Expression.
@@ -26,11 +24,10 @@ The code of this section is in the expresso-tutorial.expresso-basics namespace
   functions.
 
 ** Constructing Expressions
-   while all functions in numeric.expresso.core accept plain s-expressions as 
-   arguments, the ex-macro is very convenient for creating expressions suitable
-   for further manipulation by expresso.
+   You can construct expressions with the ex macro like shown in the next snippet
 
   #+begin_src clojure :exports both :results output :tangle yes
+    (in-ns 'expresso-tutorial.expresso-basics)
     ;;you can think of ex as a better form of quoting to construct s-expressions
     (def expr (ex (+ (* a x) (* b x) (- x))))
     
@@ -48,15 +45,25 @@ The code of this section is in the expresso-tutorial.expresso-basics namespace
     It works just like you would expect
     #+begin_src clojure :exports both :results output :tangle yes
       (in-ns 'exprpresso-tutorial.expresso-basics)
-        (parse-expression "1 + 2") ;=> (+ 1 2)
-        (parse-expression "x + y + z") ;=> (+ x y z)
-        (parse-expression "1+2*3**4+5") ;=> (+ 1 (* 2 (** 3 4)) 5)
-        (parse-expression "1+2*3**(4+5)") ;=> (+ 1 (* 2 (** 3 (+ 4 5))))
-        (parse-expression "sin(x)**2 + cos( x ) ** 2 = 1")
-        ;;=> (= (+ (** (sin x) 2) (** (cos x) 2)) 1)
-        (parse-expression "[1 2 3] + [4 5 6]")
-    #+end_src
 
+      (parse-expression "1 + 2") ;=> (+ 1 2)
+
+      (parse-expression "x + y + z") ;=> (+ x y z)
+
+      (parse-expression "1+2*3**4+5") ;=> (+ 1 (* 2 (** 3 4)) 5)
+
+      (parse-expression "1+2*3**(4+5)") ;=> (+ 1 (* 2 (** 3 (+ 4 5))))
+
+      (parse-expression "sin(x)**2 + cos( x ) ** 2 = 1")
+      ;;=> (= (+ (** (sin x) 2) (** (cos x) 2)) 1)
+
+      (parse-expression "[1 2 3] + [4 5 6]")
+    #+end_src
+** Other Mechanism To Construct Expressions
+   Expresso does not force you to construct expressions with the ex macro. It 
+   provides more constructing mechanism and the public api also accepts plain
+   s-expressions. Check the [Advanced Expression Construction and Manipulation](https://github.com/mschuene/expresso-tutorial/blob/master/advanced-expression-construction.org)
+   section for more details.
 * Basic Expression Manipulations
   Two basic manipulations for expressions are to evaluate them and to substitute
   terms in the expression for other.
@@ -67,17 +74,22 @@ The code of this section is in the expresso-tutorial.expresso-basics namespace
   corresponding values
   #+begin_src clojure :exports both :results output :tangle yes
     (in-ns 'expresso-tutorial.expresso-basics)
+
     (evaluate (ex (+ 1 x)) {'x 2}) ;=> 3
+
     (evaluate (ex (* x y)) {'x [1 2 3] 'y 4}) ;=> [4 8 12]
+
     (evaluate (zero-matrix :shape [2 3]) {}) ;=> [[0.0 0.0 0.0] [0.0 0.0 0.0]]
+
     (substitute (ex (+ y 2)) {'y 4}) ;=> (+ 4 2)
+
     ;;you can also substitute whole parts of the expression
     (substitute (ex (* (+ x y) 2)) {(ex (+ x y)) 4}) ;=> (* 4 2)
     
   #+end_src
   
   This is the basic interface expresso gives you to work with expressions.
-  This should be enough to get you started to go through the next section 
+  This should be enough to get you started to go through the next sections 
   of this tutorial. For more details about how to construct, annotate and 
-  query expressions and symbols see the advanced expression construction 
+  query expressions and symbols see the [Advanced Expression Construction and Manipulation](https://github.com/mschuene/expresso-tutorial/blob/master/advanced-expression-construction.org)
   section.

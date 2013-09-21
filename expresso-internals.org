@@ -10,9 +10,10 @@ it very flexible and open to be extendet.
 Expresso's aim is to base its algorithms on domain knowledge, for example in 
 the form of rules.
 I will go through the big parts of expresso and explain the internals of each:
+
 * Expresso Protocols
   Expresso is based on abstractions provided by protocols. The protocols 
-  are all extensively documented in the protocols.clj file in the expresso 
+  are all well documented in the protocols.clj file in the expresso 
   code.
 * Constructing Expressions
   The fundamental function for expresso construction is the 

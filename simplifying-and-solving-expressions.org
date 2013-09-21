@@ -20,7 +20,9 @@
 
   From these manipulations, the solving is by far the most sophisticated
   transformation. This section will cover briefly the simpler transformations 
-  and will explore the solving capabilities with an example.
+  and will explore the solving capabilities. It also provides a practical section
+  where expresso is used to solve word problems and to analyse roots and 
+  extremata of expressions.
 
 * Evaluating Constant Subexpressions
   These manipulations does a little bit more than just evaluating an expression
@@ -30,14 +32,16 @@
     (in-ns 'expresso-tutorial.simp-solve)
     
     (evaluate-constants (ex (+ 1 2))) ;=> 3
+
     ;;expresso knows, that + is commutative, so it can fold 1 2 and 3 to 6
     (evaluate-constants (ex (+ 1 x 2 3))) ;=> (+ 6 x)
+
     ;;it also folds successive constants in associative operations
     (evaluate-constants (ex (inner-product x [[1 2][3 4]] [[5 6][7 8]])))
      ;=> (inner-product x [[19 22] [43 50]])
   #+end_src
 
-* Multiplying Out an Equation
+* Multiplying Out an Expression
   Fully multiplying out an equation is also a useful manipulation if you explore
   your expressions at the repl to see what is really going on. Here are a few
   examples:
@@ -45,6 +49,7 @@
     (in-ns 'expresso-tutorial.simp-solve)
     
     (multiply-out (ex (* (+ a b) c))) ;=> (+ (* a c) (* b c))
+
     (multiply-out (ex (** (+ a b c) 2)))
      ;=> (+ (** c 2) (* 2 b c) (** b 2) (* 2 a c) (* 2 a b) (** a 2))
   #+end_src
@@ -62,12 +67,16 @@
 
   #+begin_src clojure :exports both :results output :tangle yes
     (in-ns 'expresso-tutorial.simp-solve)
+
     ;;simplify folds constants
     (simplify (ex (* a 3 4))) ;=> (* 12 a)
+
     ;;repeated applications of + and * are merged
     (simplify (ex (+ (+ a b) (* c (* d e)) (+ f g)))) ;=> (+ f g a b (* d e c))
+
     ;;it recognizes special constants for operations
     (simplify (ex (+ 0 (* 0 b) (* 1 b) (** c 1) (/ d 1) (- e 0)))) ;=> (+ b c d e)
+
     ;;and can simplify the inverses
     (simplify (ex (+ (- a a) (- (* 2 a) a) (+ a (* -2 a)) (/ a a) (* a b (/ a)))))
     ;;=> (+ 1.0 b)
@@ -89,7 +98,7 @@
     ;;=> (+ 1 (* (+ 2 a) x) (** x 2))
   #+end_src
 
-* Differentiate an expression
+* Differentiate an Expression
   The differentiate function can differentiate a function with regard to a
   variable. You can also specify multiple variables in which case the funciton
   is differentiated one time for each symbol in the symbol vector
@@ -97,28 +106,37 @@
     (in-ns 'expresso-tutorial.simp-solve)
     
     (differentiate '[x] 'x) ;=> 1
+
     (differentiate '[x] (ex (* (+ x 1) (+ x 2)))) ;=> (+ (* 2 x) 3)
+
     (differentiate '[x] (ex (exp (exp x)))) ;=> (* (exp (exp x)) (exp x))
+
     (differentiate '[x] (ex (+ (* 2 (** x 3)) (* 4 (** x 5)))))
     ;;=> (+ (* 6 (** x 2)) (* 20 (** x 4)))
+
     (differentiate '[x x] (ex (+ (* 2 (** x 3)) (* 4 (** x 5)))))
     ;;=> (+ (* 12 x) (* 80 (** x 3)))
+
     (differentiate '[x x x] (ex (+ (* 2 (** x 3)) (* 4 (** x 5)))))
     ;;=> (+ 12.0 (* 240 (** x 2)))
+
     (differentiate '[x x x x] (ex (+ (* 2 (** x 3)) (* 4 (** x 5)))))
     ;;=> (* 480 x)
+
     (differentiate '[x x x x x] (ex (+ (* 2 (** x 3)) (* 4 (** x 5)))))
     ;;=> 480.0
+
     ;;in case of multiple symbols, the order of the symbols is not important
     ;;(not a feature of the programming, but of mathematics ;))
     (differentiate '[x y] (ex (* (** x 2) (** y 2))))
     ;;=> (* 4 y x)
+
     (differentiate '[y x] (ex (* (** x 2) (** y 2))))
     ;;=> (* 4 x y)
     
   #+end_src
 
-* Rearrange an equation to an unknown
+* Rearrange an Equation to an Unknown
   The function rearrange takes an expression and the unknown and , if the 
   equation contains only one occurrence of the unknown returns a list of
   equations with the variable isolated on the left hand side.
@@ -151,8 +169,11 @@
    Let's see how the solver performs on some examples:
    #+begin_src clojure :exports both :results output :tangle yes
      (in-ns 'expresso-tutorial.simp-solve)
+
      (solve 'x (ex (= (+ 1 x) 3))) ;=> #{2}
+
      (solve 'x (ex (= (* 0 x) 1))) ;=> #{} there is no solution
+
      (solve 'x (ex (= (* 0 x) 0))) ;=> _0 every value of x is a solution.
      
      (solve 'x (ex (= (+ (* 3 x) 1) (* 2 x)))) ;=> #{-1}
@@ -184,7 +205,7 @@
     (solve 'x (ex (= (+ (log (- x 2)) (log (- (* 2 x) 3))) (* 2 (log x))))) ;=> #{6}
    #+end_src
    
-** solving simultaneous equations
+** Solving Simultaneous Equations
    Building on top of the single equation solve, expresso has the facility to 
    solve multiple simultaneous equations for unknowns. If expresso can transform
    the system to a real matrix, it can use it's build in gauss solver for this
@@ -192,14 +213,17 @@
    one equation after another, substituting the partial solutions on the way
    like one would do by hand.
    Here are some examples:
+
    #+begin_src clojure :exports both :results output :tangle yes
      (in-ns 'expresso-tutorial.simp-solve)
+
      ;;for multiple equations, solve takes a vector of symbols to solve for and
      ;;multiple equations. The output format is a set of solutions where the solution
      ;;consists of a map from the symbols to its values.
      (solve '[x y z] (ex (= z (* 2 x))) (ex (= y (+ x z))) (ex (= x [1 2 3])))
      ;;=> #{{z [2 4 6], y [3 6 9], x [1 2 3]}}
      ;;you can specify only the symbols you care about
+
      (solve '[y] (ex (= z (* 2 x))) (ex (= y (+ x z))) (ex (= x [1 2 3])))
      ;;=> #{{y [3 6 9]}}
      
@@ -226,14 +250,17 @@
 * Example 1: Solving word problems
   We will use expresso here to solve five word problems from [[http://www.mathplayground.com/SMP_WordProblems.html][this site]]:
   Question 1A:
+
   #+BEGIN_QUOTE
     A third grade teacher had a box of pencils to use as prizes for her students.
     If 1/10 of the pencils are green, 1/2 of them are white, 1/4 of them are blue
     and the remaining 45 pencils are red, what is the number of blue pencils?
   #+END_QUOTE
+
   There are easier ways to extract equations from the text but for demonstration
   purposes the equations will be almost mechanically extracted from the text.
   The following snippet shows how this expressions can be solved with expresso.
+
   #+begin_src clojure :exports both :results output :tangle yes
     (in-ns 'expresso-tutorial.simp-solve)
     
@@ -244,30 +271,35 @@
            (ex (= (/ pencils 4) blue))
            (ex (= red 45))) ;=> #{{blue 75N}}
   #+end_src
+
   Question 2A:
+
   #+BEGIN_QUOTE
     If Jill's age is increased by Mark's age, the result is 2 times Jill's age
     5 years ago. If Mark is now M years old, what is Jill's present age in 
     terms of M?
   #+END_QUOTE
+
   This translates straightforward to one equation which expresso can then solve:
+
   #+begin_src clojure :exports both :results output :tangle yes
     (in-ns 'expresso-tutorial.simp-solve)
     
     (solve 'j (ex (= (+ j m) (* 2 (- j 5))))) ;=> #{(+ 10 m)}
   #+end_src
 
-
   Question 3A:
+
   #+BEGIN_QUOTE
     8 Carpenters worked from 7:00 am until 4:00 pm framing a house. Working at 
     the same rate, how many additional carpenters would be needed for the job 
     to hae take 3 hours less?
   #+END_QUOTE
+
   This is a little bit harder to translate to formulas. First the different units
   in time have to be translated, so that the time difference is (- 16 7) hours
-  Also for this word problem, the rate has to be consideret and there is a 
-  reciproce relationship between number of workers and time until the work is
+  Also for this word problem, the rate has to be considered and there is a 
+  reciprocal relationship between number of workers and time until the work is
   done. Having realized that, it is straightforward to build the equations and
   expresso solves them.
   #+begin_src clojure :exports both :results output :tangle yes
@@ -282,11 +314,13 @@
   #+end_src
 
   Question 4A
+
   #+BEGIN_QUOTE
     Sara left a rest stop at 10:00 am and drove north on the interstate at a rate
     of 60 miles per hour. Todd left an hour later and headed south at a rate of
     50 miles per hour. At what time were Sara and Todd 225 miles apart?
   #+END_QUOTE
+
   This word problem involes two movements in different directions which start at
   different times and move with different speeds. The total difference is there-
   fore the sum of the two distances. All that is needed is to express the 
@@ -303,10 +337,16 @@
            (ex (= distance-sara (* (- time start-sara) speed-sara)))
            (ex (= distance-todd (* (- time start-todd) speed-todd)))
            (ex (= (+ distance-sara distance-todd) 225))) ;=> #{{time 25/2}}
-   #+end_src  
     
+   #+end_src  
+
+  Excercise for the reader: 
+  What happens, if you let the total distance unspecified
+  eg by replacing the 255 in the last equation above by a variable?
+
   Question 5A:
   #+BEGIN_QUOTE
+
     Tori owes her friend b dollars. Last month she paid 1/4 of the amount owed.
     This month she paid her friend 1/5 of the remaining amount plus $15.00.
     In terms of b, how much money does she still owe?
@@ -317,6 +357,7 @@
 
   #+begin_src clojure :exports both :results output :tangle yes
     (in-ns 'expresso-tutorial.simp-solve)
+
     (solve '[remaining2 original]
            (ex (= original b))
            (ex (= remaining1 (- original (/ original 4))))

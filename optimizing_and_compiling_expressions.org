@@ -7,9 +7,6 @@ This section of this tutorial showcases expresso's facilities to optimize
 expressions. Expresso's optimizer, coupled with it's expression compiler provides
 a seemingless to use interface and enables considerable performance improvements
 in some cases.
-The most important part is that it is datadriven from a set of functions which 
-constitute a set of transformations which are successively applied on the 
-expression. See the section on extending expresso for more details.
 
 #+begin_src clojure :exports both :results output :tangle yes
   (ns expresso-tutorial.optimize-compile
@@ -22,11 +19,13 @@ expression. See the section on extending expresso for more details.
   compiled to an efficient clojure function. The following code snippets
   highlights some of the optimizations, which are performed by the optimizer on 
   small expression inputs.
+
   #+begin_src clojure :exports both :results output :tangle yes
     (in-ns 'expresso-tutorial.optimize-compile)
     
     ;;the optimizer provides constant folding
     (optimize (ex (* (+ x 3 4) 5 2))) ;=> (* 10 (+ 7 x))
+
     (optimize (ex (* (+ [1 2] x [3 4]) [[1 2][3 4]])))
     ;;=> (* (+ [4 6] x) [[1 2] [3 4]])
     
@@ -35,6 +34,7 @@ expression. See the section on extending expresso for more details.
     ;;replaces each set of equivalent equations with a binding in a let expression
     (optimize (ex (+ (expensive-operation) (expensive-operation))))
     ;;=> (let [local658470 (expensive-operation)] (* 2 local658470))
+
     (optimize (ex (+ (* a b c) (** (* c b a) 2))))
     ;;=> (let [local660809 (* a b c)] (+ local660809 (** local660809 2)))
     
@@ -42,6 +42,7 @@ expression. See the section on extending expresso for more details.
     ;;reduce the excecution time. These include canceling out inverses, some
     ;;factorization of the input, special constant removal ...
     (optimize (ex (* b 0))) ;=> 0.0
+
     (optimize (ex (+ (* 1000 x) (* 100 x) (** x 2)))) ;=> (+ (* 1100 x) (** x 2))
     
     ;;there is also experimental support for optimizations of summation.
@@ -49,6 +50,7 @@ expression. See the section on extending expresso for more details.
     ;;to 5 with the formula (** k 2). The optimizations includes the rule to
     ;;move a factor out of the sum.
     (optimize (ex (sum k 0 10 (* a (** k 2)))))
+
     ;;=> (* a (sum k (<= 0 k 10) (** k 2)))
     ;;Sum expressions compile to an optimized clojure loop expression.
     ;;See the section about expresso's internals about how this is accomplished
@@ -67,6 +69,7 @@ expression. See the section on extending expresso for more details.
     ;;undetermined.
     (optimize (ex (inner-product a b c d))) ;=> (inner-product a b c d)
     ;;If they are specified with the shape metadata, the optimization is applied.
+
     (optimize (ex (inner-product
                    ^{:shape [40 20]} a
                    ^{:shape [20 30]} b
@@ -77,18 +80,14 @@ expression. See the section on extending expresso for more details.
   #+end_src
 
   The single optimizations are also available in the numeric.expresso.optimize
-  namespace. and you can specify there an optional second argument to the 
+  namespace. You can specify there an optional second argument to the 
   optimize function which lets you specify the optimizations and the order in 
   which they are applied. More about this can be found in the section about
   Extending expresso.
 
 * Compiling 
-  After you have the optimized version of your expressions, you can copmile them 
-  to an efficient clojure function. The compilation works by emitting clojure
-  code for the expressions. In the normal case the emitted code will be
-  (execution-function args*), but it can be more complicated code for 
-  something like a sum expression. The emitted code together with the 
-  binding vector is then eval'ed to a clojure function.
+  After you have the optimized version of your expressions, you can compile them 
+  to an efficient clojure function. 
 
   #+begin_src clojure :exports both :results output :tangle yes
     (in-ns 'expresso-tutorial.optimize-compile)
@@ -106,17 +105,24 @@ expression. See the section on extending expresso for more details.
     ((first funcs) 2 3) ;=> 12
   #+end_src
 
+  The compilation works by emitting clojure
+  code for the expressions. In the normal case the emitted code will be
+  (execution-function args*), but it can be more complicated code for 
+  something like a sum expression. The emitted code together with the 
+  binding vector is then eval'ed to a clojure function.
   The code that expresso emits for the compiled function is an implementation 
-  details, but if you are interested to find out what it does you can do it 
-  with the following calls.
+  details, but if you are interested to find out what it does under the hood,
+  you can do it like the following snippet shows:
   #+begin_src clojure :exports both :results output :tangle yes
     (in-ns 'expresso-tutorial.optimize-compile)
     
     (require '[numeric.expresso.protocols :as p])
     
     (p/emit-code (ex (+ a b))) ;=> (+ a b)
+
     (p/emit-code (ex (+ ^:matrix a b)))
     ;;=> (#<matrix$add clojure.core.matrix$add@3e322a4c> a b)
+
     (p/emit-code (ex (exp x))) ;=> (#<matrix$exp clojure.core.matrix$exp@60e04338> x)
     
     ;;let-expressions compile to let expressions
